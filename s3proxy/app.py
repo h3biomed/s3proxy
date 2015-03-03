@@ -4,15 +4,23 @@ from flask import request
 from flask import stream_with_context
 from werkzeug.datastructures import Headers
 from werkzeug.contrib.cache import SimpleCache
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key
-import argparse
+from boto import connect_s3
 import yaml
 import os
 import re
 
 app = Flask(__name__)
 cache = SimpleCache()
+
+# load AWS credentials and bucket
+config_path = os.path.expanduser('~/.s3proxy')
+config = yaml.load(open(config_path,'r'))
+conn = connect_s3()
+bucket = conn.get_bucket(config["bucket_name"])
+
+# Load the rewrite rules:
+for name, rule in config.get("rewrite_rules", {}).iteritems():
+    config["rewrite_rules"][name]["r"] = re.compile(rule["from"])
 
 def apply_rewrite_rules(input_str):
     for name, rule in config.get("rewrite_rules", {}).iteritems():
@@ -79,18 +87,4 @@ def get_file(url):
     return Response(stream_with_context(stream(S3Key)), return_code, headers=return_headers, direct_passthrough=True)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true", default=False)
-    parser.add_argument("--config", "-c", action="store", default="config.yaml")
-    args = parser.parse_args()
-
-    # load AWS credentials and bucket
-    config = yaml.load(open(args.config,'r'))
-    conn = S3Connection(config["AWS_ACCESS_KEY_ID"], config["AWS_SECRET_ACCESS_KEY"])
-    bucket = conn.get_bucket(config["bucket_name"])
-
-    # Load the rewrite rules:
-    for name, rule in config.get("rewrite_rules", {}).iteritems():
-        config["rewrite_rules"][name]["r"] = re.compile(rule["from"])
-
-    app.run(debug=args.debug)
+    app.run(debug=True)
