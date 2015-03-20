@@ -15,7 +15,8 @@ cache = SimpleCache()
 # load AWS credentials and bucket
 config_path = os.path.expanduser('~/.s3proxy')
 config = yaml.load(open(config_path,'r'))
-conn = connect_s3()
+conn = connect_s3(aws_access_key_id=config['aws_access_key_id'],
+                  aws_secret_access_key=config['aws_secret_access_key'])
 bucket = conn.get_bucket(config["bucket_name"])
 
 # Load the rewrite rules:
