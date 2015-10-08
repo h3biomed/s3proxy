@@ -4,24 +4,25 @@ from flask import request
 from flask import stream_with_context
 from werkzeug.datastructures import Headers
 from werkzeug.contrib.cache import SimpleCache
-from boto import connect_s3
+import boto3
 import yaml
 import os
 import re
+
+BUFFER_SIZE = 8192
 
 app = Flask(__name__)
 cache = SimpleCache()
 
 # load AWS credentials and bucket
 config_path = os.path.expanduser('~/.s3proxy')
-config = yaml.load(open(config_path,'r'))
-conn = connect_s3(aws_access_key_id=config['aws_access_key_id'],
-                  aws_secret_access_key=config['aws_secret_access_key'])
-bucket = conn.get_bucket(config["bucket_name"])
+config = yaml.load(open(config_path, 'r'))
+s3 = boto3.resource('s3')
 
 # Load the rewrite rules:
 for name, rule in config.get("rewrite_rules", {}).iteritems():
     config["rewrite_rules"][name]["r"] = re.compile(rule["from"])
+
 
 def apply_rewrite_rules(input_str):
     for name, rule in config.get("rewrite_rules", {}).iteritems():
@@ -30,16 +31,18 @@ def apply_rewrite_rules(input_str):
         print "new url", input_str
     return input_str
 
+
 def get_S3Key(url):
     S3Key = cache.get(url)
     if S3Key is None:
-        S3Key = bucket.lookup("/" + url)
+        S3Key = s3.Object(config['bucket_name'], url)
         try:
-            size = S3Key.size
+            size = S3Key.content_length
         except:
             return None
         cache.set(url, S3Key, timeout=5 * 60)
     return S3Key
+
 
 @app.route('/files/<path:url>', methods=["HEAD"])
 def head_file(url):
@@ -47,11 +50,12 @@ def head_file(url):
     headers = Headers()
     S3Key = get_S3Key(url)
     try:
-        size = S3Key.size
+        size = S3Key.content_length
     except:
         return Response(None, 404)
     headers.add("Content-Length", size)
     return Response(headers=headers, direct_passthrough=True)
+
 
 @app.route('/files/<path:url>', methods=["GET"])
 def get_file(url):
@@ -60,27 +64,29 @@ def get_file(url):
     return_headers = Headers()
     S3Key = get_S3Key(url)
     try:
-        size = S3Key.size
+        size = S3Key.content_length
     except:
         return Response(None, 404)
 
     if range_header:
         print "%s: %s (size=%d)" % (url, range_header, size)
         start_range, end_range = [int(x) for x in range_header.split("=")[1].split("-")]
-        get_headers = {'Range' : "bytes=%d-%d" % (start_range, end_range)}
+        get_range = "bytes=%d-%d" % (start_range, end_range)
         return_headers.add('Accept-Ranges', 'bytes')
         return_headers.add('Content-Range', 'bytes {0}-{1}/{2}'.format(start_range, end_range, size))
         return_headers.add('Content-Length', end_range-start_range+1)
         return_code = 206
+        response = S3Key.get(Range=get_range)
     else:
         print "%s: all data (size=%d)" % (url, size)
-        get_headers = {}
         return_code = 200
+        response = S3Key.get()
 
-    S3Key.open_read(headers=get_headers)
+    body = response['Body']
+
     def stream(S3Key):
         while True:
-            data = S3Key.resp.read(S3Key.BufferSize)
+            data = body.read(BUFFER_SIZE)
             if data:
                 yield data
             else:
