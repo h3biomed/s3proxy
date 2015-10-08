@@ -65,11 +65,16 @@ def get_file(url):
 
     if range_header:
         print "%s: %s (size=%d)" % (url, range_header, size)
-        start_range, end_range = [int(x) for x in range_header.split("=")[1].split("-")]
+        start_range_str, end_range_str = range_header.split("=")[1].split("-")
+        start_range = int(start_range_str)
+        end_range = size - 1 if end_range_str == '' else int(end_range_str)
         get_range = "bytes=%d-%d" % (start_range, end_range)
+
         return_headers.add('Accept-Ranges', 'bytes')
         return_headers.add('Content-Range', 'bytes {0}-{1}/{2}'.format(start_range, end_range, size))
         return_headers.add('Content-Length', end_range-start_range+1)
+        #return_headers.add('Content-Type', 'application/x-gzip')
+        
         return_code = 206
         response = S3Key.get(Range=get_range)
     else:
