@@ -3,7 +3,6 @@ from flask import Response
 from flask import request
 from flask import stream_with_context
 from werkzeug.datastructures import Headers
-from werkzeug.contrib.cache import SimpleCache
 import boto3
 import yaml
 import os
@@ -12,7 +11,6 @@ import re
 BUFFER_SIZE = 8192
 
 app = Flask(__name__)
-cache = SimpleCache()
 
 # load AWS credentials and bucket
 config_path = os.path.expanduser('~/.s3proxy')
@@ -33,14 +31,11 @@ def apply_rewrite_rules(input_str):
 
 
 def get_S3Key(url):
-    S3Key = cache.get(url)
-    if S3Key is None:
-        S3Key = s3.Object(config['bucket_name'], url)
-        try:
-            size = S3Key.content_length
-        except:
-            return None
-        cache.set(url, S3Key, timeout=5 * 60)
+    S3Key = s3.Object(config['bucket_name'], url)
+    try:
+        size = S3Key.content_length
+    except:
+        return None
     return S3Key
 
 
