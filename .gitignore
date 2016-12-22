@@ -6,3 +6,5 @@ build/
 dist/
 *.log
 *.pid
+twistd.log*
+*.pyc
