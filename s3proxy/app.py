@@ -15,7 +15,7 @@ app = Flask(__name__)
 # load AWS credentials and bucket
 config_path = os.path.expanduser('~/.s3proxy')
 config = yaml.load(open(config_path, 'r'))
-s3 = boto3.resource('s3')
+s3 = boto3.resource('s3', config=boto3.client.Config(signature_version='s3v4'))
 
 # Load the rewrite rules:
 for name, rule in config.get("rewrite_rules", {}).iteritems():

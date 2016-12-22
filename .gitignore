@@ -4,6 +4,7 @@ s3proxy.sublime-workspace
 *.egg-info/*
 build/
 dist/
+.idea/
 *.log
 *.pid
 twistd.log*
