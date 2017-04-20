@@ -4,6 +4,7 @@ from flask import request
 from flask import stream_with_context
 from werkzeug.datastructures import Headers
 import boto3
+from boto3.client import Config
 import yaml
 import os
 import re
@@ -15,7 +16,7 @@ app = Flask(__name__)
 # load AWS credentials and bucket
 config_path = os.path.expanduser('~/.s3proxy')
 config = yaml.load(open(config_path, 'r'))
-s3 = boto3.resource('s3', config=boto3.client.Config(signature_version='s3v4'))
+s3 = boto3.resource('s3', config=Config(signature_version='s3v4'))
 
 # Load the rewrite rules:
 for name, rule in config.get("rewrite_rules", {}).iteritems():
