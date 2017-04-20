@@ -11,6 +11,7 @@ setup(
     install_requires=[
         'PyYAML',
         'boto',
+        'boto3',
         'flask'
     ]
 )
