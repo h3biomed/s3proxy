@@ -4,7 +4,7 @@ from flask import request
 from flask import stream_with_context
 from werkzeug.datastructures import Headers
 import boto3
-from boto3.client import Config
+from botocore.client import Config
 import yaml
 import os
 import re
