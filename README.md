@@ -22,7 +22,7 @@ This project is in many ways similar to [S3Auth][s3auth], a hosted service which
 
 ### Features
    - Serves S3 file objects via standard GET request, optionally providing only a part of a file using the `byte-range` header. 
-   - Easy to configure via a the `config.yaml` file-- S3 keys and bucket name is all you need!
+   - Easy to configure via a the `~/.s3proxy` file-- bucket name is all you need!
    - Limited support for simple url-rewriting where necessary.
    - Uses the werkzeug [`SimpleCache` module][simplecache] to cache S3 object identifiers (but not data) in order to reduce latency and lookup times.
 
@@ -36,11 +36,9 @@ To run S3proxy, you will need:
    - An Amazon AWS account and keys with appropriate S3 access
 
 #### Installation/Configuration
-At the moment, there is no installation. Simply put your AWS keys and bucket name into the config.yaml file:
+At the moment, there is no installation. Simply put your bucket name into the ~/.s3proxy file:
 
 ```yaml
-AWS_ACCESS_KEY_ID: ''
-AWS_SECRET_ACCESS_KEY: ''
 bucket_name: ''
 ```
 
